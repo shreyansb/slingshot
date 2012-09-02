@@ -7,13 +7,12 @@ import (
 	"image"
 	"log"
 	"net/http"
-	"path/filepath"
 )
 
 var (
 	port               = flag.String("port", ":8080", "port")
 	homeTemplate       = template.Must(template.ParseFiles("templates/home.html"))
-	acceptedExtensions = []string{".jpg", ".jpeg", ".png", ".gif"}
+	acceptedContentTypes = []string{"image/jpeg", "image/png", "image/gif"}
 )
 
 func main() {
@@ -60,8 +59,9 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 
 	// check file types, make sure we received an image
 	filename := fileHeader.Filename
-	if checkFileExtension(filepath.Ext(filename)) == false {
-		http.Error(response, "invalid file extension", 500)
+    contentType := (fileHeader.Header).Get("Content-Type")
+	if checkContentType(contentType) == false {
+		http.Error(response, "invalid content type", 500)
 	}
 
 	photo, _, err := image.Decode(file)
@@ -75,13 +75,13 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 	go resizeAndUploadPhotos(filename, &photo)
 }
 
-func checkFileExtension(extension string) bool {
+func checkContentType(contentType string) bool {
 	/* return true if the extenion passed in is one of the 
 	   accepted extensions, which are image file extensions.
 	   return false otherwise
 	*/
-	for _, acceptedExtension := range acceptedExtensions {
-		if extension == acceptedExtension {
+	for _, acceptedContentType := range acceptedContentTypes {
+		if contentType == acceptedContentType {
 			return true
 		}
 	}
