@@ -1,4 +1,6 @@
 Crops and resized a picture to 100x100 and 50x50 squares, and uploads them and the original to S3.
+
+
 You'll need a file `settings.go` that looks like this
 
 ```
