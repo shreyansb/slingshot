@@ -6,7 +6,9 @@ import (
 	"html/template"
 	"image"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 )
 
 var (
@@ -58,7 +60,7 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 	defer file.Close()
 
 	// check file types, make sure we received an image
-	filename := fileHeader.Filename
+	filename := getFilename(request, fileHeader)
 	contentType := (fileHeader.Header).Get("Content-Type")
 	if checkContentType(contentType) == false {
 		http.Error(response, "invalid content type", 500)
@@ -86,4 +88,16 @@ func checkContentType(contentType string) bool {
 		}
 	}
 	return false
+}
+
+func getFilename(request *http.Request, fileHeader *multipart.FileHeader) string {
+	var filename string
+	filename = request.FormValue("filename")
+	if filename == "" {
+		baseFilename := fileHeader.Filename
+		extension := filepath.Ext(baseFilename)
+		filename = baseFilename[:len(baseFilename)-len(extension)]
+	}
+	log.Printf("filename: %s", filename)
+	return filename
 }
