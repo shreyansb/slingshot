@@ -21,8 +21,8 @@ var (
     port = flag.String("port", ":8080", "port")
     homeTemplate = template.Must(template.ParseFiles("templates/home.html"))
     auth = aws.Auth{ AccessKey: S3_ACCESS_KEY, SecretKey: S3_SECRET_KEY }
-    s = s3.New(auth, aws.USEast)
-    b = s3.Bucket{ s, S3_BUCKET_NAME }
+    s3Connection = s3.New(auth, aws.USEast)
+    bucket = s3.Bucket{ s3Connection, S3_BUCKET_NAME }
     ACCEPTED_EXTENSIONS = []string{".jpg", ".jpeg", ".png", ".gif"}
 )
 
@@ -93,30 +93,30 @@ func resizeAndUploadPhotos(filename string, photo *image.Image) {
     }
 }
 
-func getBounds(source_image *image.Image) (image.Rectangle, image.Point) {
+func getBounds(sourceImage *image.Image) (image.Rectangle, image.Point) {
     /* TODO this should be called once, regardless of the number of additional sizes
     */
     var (
-        canvas_size = (*source_image).Bounds()
-        height = canvas_size.Max.Y
-        width = canvas_size.Max.X
-        top_left_point = image.Point{0, 0}
+        canvasSize = (*sourceImage).Bounds()
+        height = canvasSize.Max.Y
+        width = canvasSize.Max.X
+        topLeftPoint = image.Point{0, 0}
     )
-    log.Printf("bounds: %v; height, width: %d, %d", canvas_size, height, width)
+    log.Printf("bounds: %v; height, width: %d, %d", canvasSize, height, width)
     if height > width {
-        canvas_size = image.Rect(0, 0, width, width)
-        top_left_point = image.Point{0, (height-width)/2}
+        canvasSize = image.Rect(0, 0, width, width)
+        topLeftPoint = image.Point{0, (height-width)/2}
     } else if width > height {
-        canvas_size = image.Rect(0, 0, height, height)
-        top_left_point = image.Point{(width-height)/2, 0}
+        canvasSize = image.Rect(0, 0, height, height)
+        topLeftPoint = image.Point{(width-height)/2, 0}
     }
-    return canvas_size, top_left_point
+    return canvasSize, topLeftPoint
 }
 
-func getSquare(source_image *image.Image) (image.Image) {
-    square_size, starting_point_on_source := getBounds(source_image)
-    squareImage := image.NewRGBA(square_size)
-    draw.Draw(squareImage, square_size, *source_image, starting_point_on_source, draw.Src)
+func getSquare(sourceImage *image.Image) (image.Image) {
+    squareSize, topLeftPoint := getBounds(sourceImage)
+    squareImage := image.NewRGBA(squareSize)
+    draw.Draw(squareImage, squareSize, *sourceImage, topLeftPoint, draw.Src)
     return squareImage
 }
 
@@ -124,8 +124,8 @@ func resize(photo *image.Image, size int) (image.Image) {
     /* Get the desired rectangle we want to crop, given the size, 
     and then call the exported Resize function from resize.go
     */ 
-    square_photo := getSquare(photo)
-    return Resize(square_photo, square_photo.Bounds(), size, size)
+    squareImage := getSquare(photo)
+    return Resize(squareImage, squareImage.Bounds(), size, size)
 }
 
 func resizeAndUpload(filename string, photo image.Image, size int) {
@@ -135,36 +135,36 @@ func resizeAndUpload(filename string, photo image.Image, size int) {
     */
 
     // resize the image
-    var cropped_photo image.Image
+    var croppedImage image.Image
     switch size {
     case 100:
-        cropped_photo = resize(&photo, size)
+        croppedImage = resize(&photo, size)
     case 50:
-        cropped_photo = resize(&photo, size)
+        croppedImage = resize(&photo, size)
     case 0:
-        cropped_photo = photo
+        croppedImage = photo
     default:
         log.Printf("invalid size: %s", size)
         return
     }
 
     // convert the image to a []byte
-    var photo_bytes bytes.Buffer
+    var photoBytes bytes.Buffer
     options := jpeg.Options{Quality: 100}
-    if err := jpeg.Encode(&photo_bytes, cropped_photo, &options); err != nil {
+    if err := jpeg.Encode(&photoBytes, croppedImage, &options); err != nil {
         log.Printf("couldn't jpeg encode: %s", err) 
     }
-    new_filename := fmt.Sprintf("%s_%d", filename, size)
+    newFilename := fmt.Sprintf("%s_%d", filename, size)
 
     // upload the image to s3
-    uploadToS3(new_filename, photo_bytes.Bytes())
+    uploadToS3(newFilename, photoBytes.Bytes())
 }
 
-func uploadToS3(filename string, photo_bytes []byte) {
+func uploadToS3(filename string, photoBytes []byte) {
     /* PUT :photo in the s3 bucket, with the name :filename
     */
     log.Printf("uploading: %s", filename)
-    b.Put(filename, photo_bytes, "image/jpeg", s3.PublicRead)
+    bucket.Put(filename, photoBytes, "image/jpeg", s3.PublicRead)
     log.Printf("done uploading: %s", filename)
 }
 
