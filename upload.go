@@ -27,7 +27,13 @@ func uploadPhoto(filename string, photo image.Image, size int) {
 	if err := jpeg.Encode(&photoBytes, photo, &options); err != nil {
 		log.Printf("couldn't jpeg encode: %s", err)
 	}
-	newFilename := fmt.Sprintf("%s_%d", filename, size)
+
+	var newFilename string
+	if size == 0 {
+		newFilename = fmt.Sprintf("%s/full", filename)
+	} else {
+		newFilename = fmt.Sprintf("%s/%d", filename, size)
+	}
 
 	// upload the image to s3
 	uploadToS3(newFilename, photoBytes.Bytes())

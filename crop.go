@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	uploadSizes = []int{0, 50, 100, 300}
+	uploadSizes = []int{0, 50, 100}
 )
 
 func resizeAndUploadPhotos(filename string, photo *image.Image) {

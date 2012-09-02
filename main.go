@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	port               = flag.String("port", ":8080", "port")
-	homeTemplate       = template.Must(template.ParseFiles("templates/home.html"))
+	port                 = flag.String("port", ":8080", "port")
+	homeTemplate         = template.Must(template.ParseFiles("templates/home.html"))
 	acceptedContentTypes = []string{"image/jpeg", "image/png", "image/gif"}
 )
 
@@ -59,7 +59,7 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 
 	// check file types, make sure we received an image
 	filename := fileHeader.Filename
-    contentType := (fileHeader.Header).Get("Content-Type")
+	contentType := (fileHeader.Header).Get("Content-Type")
 	if checkContentType(contentType) == false {
 		http.Error(response, "invalid content type", 500)
 	}
