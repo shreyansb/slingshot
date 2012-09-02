@@ -17,11 +17,6 @@ import (
      "net/http"
 )
 
-const (
-    // S3_ACCESS_KEY and S3_SECRET_KEY defined in settings.go
-    S3_BUCKET_NAME = "devphotos.venmo.com"    
-)
-
 var (
     port = flag.String("port", ":8080", "port")
     homeTemplate = template.Must(template.ParseFiles("templates/home.html"))
