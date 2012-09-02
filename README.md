@@ -13,9 +13,11 @@ const (
 
 To run the program:
 
-```go run *.go```
+`go run *.go`
 
 and visit:
 
-```http://localhost:8080```
+`http://localhost:8080`
+
+to try it out
 
