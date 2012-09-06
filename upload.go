@@ -8,12 +8,13 @@ import (
 	"launchpad.net/goamz/aws"
 	"launchpad.net/goamz/s3"
 	"log"
+	"os"
 )
 
 var (
-	auth         = aws.Auth{AccessKey: S3_ACCESS_KEY, SecretKey: S3_SECRET_KEY}
+	auth         = aws.Auth{os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY")}
 	s3Connection = s3.New(auth, aws.USEast)
-	bucket       = s3.Bucket{s3Connection, S3_BUCKET_NAME}
+	bucket       = s3.Bucket{s3Connection, os.Getenv("S3_BUCKET_NAME")}
 )
 
 func uploadPhoto(filename string, photo image.Image, size int) {
