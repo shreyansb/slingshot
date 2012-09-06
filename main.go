@@ -9,15 +9,30 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	"runtime"
 )
 
 var (
 	port                 = flag.String("port", ":8080", "port")
 	homeTemplate         = template.Must(template.ParseFiles("templates/home.html"))
 	acceptedContentTypes = []string{"image/jpeg", "image/png", "image/gif"}
+	resizerChan          chan PhotoDetails
 )
 
+type PhotoDetails struct {
+	photo    *image.Image
+	filename string
+}
+
 func main() {
+	// use all the CPU cores available
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// start a goroutine to handle photo resizing on a separate core and
+	// initialize a chan to send data to the goroutine
+	resizerChan = make(chan PhotoDetails)
+	go receivePhotos()
+
 	// set up handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/":       homeHandler,
@@ -29,6 +44,7 @@ func main() {
 
 	// start server
 	flag.Parse()
+	log.Printf("[main] starting server on localhost%s", *port)
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
@@ -65,6 +81,7 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 	if checkContentType(contentType) == false {
 		http.Error(response, "invalid content type", 500)
 	}
+	log.Printf("[photoUploadHandler] receiving photo: %s", filename)
 
 	photo, _, err := image.Decode(file)
 	if err != nil {
@@ -72,9 +89,17 @@ func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// asynchronously resize and upload the photo to S3, returning
-	// a response to the http client
-	go resizeAndUploadPhotos(filename, &photo)
+	// send the details of this photo over a channel to the 
+	// resizer goroutine, which is locked to a core
+	photoDetails := PhotoDetails{&photo, filename}
+	go sendPhotoDetails(photoDetails)
+
+	log.Printf("[photoUploadHandler] returning HTTP response to client")
+}
+
+func sendPhotoDetails(photoDetails PhotoDetails) {
+	log.Printf("[sendPhotoDetails] sending photoDetails over chan")
+	resizerChan <- photoDetails
 }
 
 func checkContentType(contentType string) bool {
@@ -98,6 +123,5 @@ func getFilename(request *http.Request, fileHeader *multipart.FileHeader) string
 		extension := filepath.Ext(baseFilename)
 		filename = baseFilename[:len(baseFilename)-len(extension)]
 	}
-	log.Printf("filename: %s", filename)
 	return filename
 }

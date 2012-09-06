@@ -25,7 +25,7 @@ func uploadPhoto(filename string, photo image.Image, size int) {
 	var photoBytes bytes.Buffer
 	options := jpeg.Options{Quality: 100}
 	if err := jpeg.Encode(&photoBytes, photo, &options); err != nil {
-		log.Printf("couldn't jpeg encode: %s", err)
+		log.Printf("[uploadPhoto] couldn't jpeg encode: %s", err)
 	}
 
 	var newFilename string
@@ -41,5 +41,10 @@ func uploadPhoto(filename string, photo image.Image, size int) {
 
 func uploadToS3(filename string, photoBytes []byte) {
 	/* upload the given byte array :photoButes, to S3 */
-	bucket.Put(filename, photoBytes, "image/jpeg", s3.PublicRead)
+	log.Printf("[uploadToS3] starting upload of %s", filename)
+	err := bucket.Put(filename, photoBytes, "image/jpeg", s3.PublicRead)
+	if err != nil {
+		log.Printf("[uploadToS3] error uploading: %s", err)
+	}
+	log.Printf("[uploadToS3] done uploading %s", filename)
 }
