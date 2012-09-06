@@ -1,3 +1,5 @@
+Receives a photo via HTTP POST, resizes and crops the photo into 50x50 and 100x100 squares, and uploads all three to S3.
+
 ```
 [shreyans ~/Code/slingshot (master)]$ go run *.go
 2012/09/06 18:50:13 [main] starting server on localhost:8080
@@ -14,16 +16,6 @@
 2012/09/06 18:50:27 [uploadToS3] done uploading burntedges/full
 ```
 
-You'll need a file `settings.go` that looks like this
+You'll need to define the environment variables: `S3_BUCKET_NAME`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY`
 
-```
-package main
-
-const (
-	S3_BUCKET_NAME = "your_bucket_name"
-    S3_ACCESS_KEY = "your_access_key"
-    S3_SECRET_KEY = "your_secret_key"
-)
-```
-
-`go run *.go` then `http://localhost:8080`
+Run it with `go run *.go` or `go build -o slingshot && ./slingshot` 
