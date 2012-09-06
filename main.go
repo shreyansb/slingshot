@@ -14,7 +14,7 @@ import (
 
 var (
 	port                 = flag.String("port", ":8080", "port")
-	homeTemplate         = template.Must(template.ParseFiles("templates/home.html"))
+	homeTemplate         = template.Must(template.ParseFiles("home.html"))
 	acceptedContentTypes = []string{"image/jpeg", "image/png", "image/gif"}
 	resizerChan          chan PhotoDetails
 )
