@@ -12,16 +12,24 @@ import (
 )
 
 var (
-	auth         = aws.Auth{os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY")}
-	s3Connection = s3.New(auth, aws.USEast)
-	bucket       = s3.Bucket{s3Connection, os.Getenv("S3_BUCKET_NAME")}
+	auth         aws.Auth
+	s3Connection *s3.S3
+	bucket       s3.Bucket
 )
 
-func uploadPhoto(filename string, photo image.Image, size int) {
-	/* convert the incoming image.Image to a jpeg encoded byte array,
-	   and upload it to S3 
-	*/
+func setupS3Connection() {
+	if *s3_bucket_name == "" || *s3_access_key == "" || *s3_secret_key == "" {
+		log.Printf("[init] missing S3 params")
+		os.Exit(1)
+	}
+	auth = aws.Auth{*s3_access_key, *s3_secret_key}
+	s3Connection = s3.New(auth, aws.USEast)
+	bucket = s3.Bucket{s3Connection, *s3_bucket_name}
+}
 
+// convert the incoming image.Image to a jpeg encoded byte array,
+// and upload it to S3 
+func uploadPhoto(filename string, photo image.Image, size int) {
 	// convert the image to a []byte
 	var photoBytes bytes.Buffer
 	options := jpeg.Options{Quality: 100}
@@ -40,8 +48,8 @@ func uploadPhoto(filename string, photo image.Image, size int) {
 	uploadToS3(newFilename, photoBytes.Bytes())
 }
 
+// upload the given byte array :photoButes, to S3
 func uploadToS3(filename string, photoBytes []byte) {
-	/* upload the given byte array :photoButes, to S3 */
 	log.Printf("[uploadToS3] starting upload of %s", filename)
 	err := bucket.Put(filename, photoBytes, "image/jpeg", s3.PublicRead)
 	if err != nil {

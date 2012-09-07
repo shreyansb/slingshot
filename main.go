@@ -8,12 +8,16 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 )
 
 var (
 	port                 = flag.String("port", ":8080", "port")
+	s3_bucket_name       = flag.String("bucket", os.Getenv("S3_BUCKET_NAME"), "bucket")
+	s3_access_key        = flag.String("access_key", os.Getenv("S3_ACCESS_KEY"), "access_key")
+	s3_secret_key        = flag.String("secret_key", os.Getenv("S3_SECRET_KEY"), "secret_key")
 	homeTemplate         = template.Must(template.ParseFiles("home.html"))
 	acceptedContentTypes = []string{"image/jpeg", "image/png", "image/gif"}
 	resizerChan          chan PhotoDetails
@@ -24,15 +28,23 @@ type PhotoDetails struct {
 	filename string
 }
 
-func main() {
+func init() {
 	// use all the CPU cores available
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// get and check command line arguments
+	flag.Parse()
+
+	// create and S3 auth and bucket connection
+	setupS3Connection()
 
 	// start a goroutine to handle photo resizing on a separate core and
 	// initialize a chan to send data to the goroutine
 	resizerChan = make(chan PhotoDetails)
 	go receivePhotos()
+}
 
+func main() {
 	// set up handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/":       homeHandler,
@@ -43,7 +55,6 @@ func main() {
 	}
 
 	// start server
-	flag.Parse()
 	log.Printf("[main] starting server on localhost%s", *port)
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -55,10 +66,9 @@ func homeHandler(response http.ResponseWriter, request *http.Request) {
 	homeTemplate.Execute(response, request.Host)
 }
 
+// extracts the uploaded file from the HTTP request, and after performing some 
+// basic checks, launches a goroutine to resize and upload the files.
 func photoUploadHandler(response http.ResponseWriter, request *http.Request) {
-	/* extracts the uploaded file from the HTTP request, and after performing some 
-	   basic checks, launches a goroutine to resize and upload the files.
-	*/
 	// if the request method isn't a POST, redirect to the homepage
 	if request.Method != "POST" {
 		homeHandler(response, request)
@@ -102,11 +112,10 @@ func sendPhotoDetails(photoDetails PhotoDetails) {
 	resizerChan <- photoDetails
 }
 
+// return true if the extenion passed in is one of the 
+// accepted extensions, which are image file extensions.
+// return false otherwise
 func checkContentType(contentType string) bool {
-	/* return true if the extenion passed in is one of the 
-	   accepted extensions, which are image file extensions.
-	   return false otherwise
-	*/
 	for _, acceptedContentType := range acceptedContentTypes {
 		if contentType == acceptedContentType {
 			return true
