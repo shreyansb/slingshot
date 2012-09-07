@@ -16,6 +16,7 @@ Receives a photo via HTTP POST, resizes and crops the photo into 50x50 and 100x1
 2012/09/06 18:50:27 [uploadToS3] done uploading burntedges/full
 ```
 
-You'll need to define the environment variables: `S3_BUCKET_NAME`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY`
+You'll either need the environment variables: `S3_BUCKET_NAME`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY`
+or will have to pass these via the command line: `--bucket`, `--access_key`, `--secret_key`
 
 Run it with `go run *.go` or `go build -o slingshot && ./slingshot` 
