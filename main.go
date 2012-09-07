@@ -41,7 +41,7 @@ func init() {
 	// start a goroutine to handle photo resizing on a separate core and
 	// initialize a chan to send data to the goroutine
 	resizerChan = make(chan PhotoDetails)
-	go receivePhotos()
+	go receivePhotos(resizerChan)
 }
 
 func main() {

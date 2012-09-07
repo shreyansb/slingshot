@@ -24,10 +24,10 @@ var (
 // 
 // This function waits for incoming photo data on a channel, resizes and crops the photo,
 // and kicks off some goroutines to upload the photos to S3
-func receivePhotos() {
+func receivePhotos(photoDetailsChan chan PhotoDetails) {
 	log.Printf("[receivePhotos] locking this goroutine to an OS thread")
 	runtime.LockOSThread()
-	for photoDetails := range resizerChan {
+	for photoDetails := range photoDetailsChan {
 		log.Printf("[receivePhotos] received photo over chan: %s", photoDetails.filename)
 		resizeAndUploadPhotos(photoDetails.filename, photoDetails.photo)
 	}
